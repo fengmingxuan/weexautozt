@@ -1,0 +1,5 @@
+#发布目录
+#dist
+#zhuanti/build/
+#zhuanti/images/
+#index.html

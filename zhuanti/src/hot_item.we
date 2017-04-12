@@ -1,0 +1,200 @@
+<template>
+<div  onclick="openzhuanti" ref="{{hotitem.seq}}" title="{{hotitem.content}}" class="itemClass-{{skinType}}">
+      <div class="content">
+            <div class="left"><image class="img-left" src="https://image.taoguba.com.cn{{getImageurl()}}"></image></div>
+            <div class="right" >
+                   <div class="up">
+                        <text  class="textClass-{{skinType}}">{{hotitem.content}}</text>
+                   </div>
+                   <div class="down" >
+                         <text class="numclass-{{skinType}}">{{formatNum(hotitem.topicReplyNum)}}讨论  {{formatNum(hotitem.topicViewNum)}}阅读</text>
+                   </div>
+            </div>
+      </div>
+      <div class="lineClass-{{skinType}}"></div>
+</div>
+</template>
+
+<script>
+    require('weex-components');
+    var modal = require('@weex-module/modal');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var weexEventModule =  require('@weex-module/weexEventModule');
+    var navigator = require('@weex-module/navigator')
+    var weexNavigator = require('@weex-module/weexNavigatorModule')
+    var taoguba = require('./taoguba');
+    module.exports = {
+        created:function(){
+             this.platform = this.$getConfig().env.platform;
+             var cskinType = this.$getConfig().skinType;
+             if(cskinType==undefined){
+                 cskinType= taoguba.getUrlParam('skinType');
+             }
+             this.skinType = cskinType;
+        },
+        data:{
+            hotitem:{
+               "seq": 48,
+               "content": "是框框伤口上渴",
+               "imgurl": "/img/2016/06/28/5idxarp0p8zi.jpg",
+               "postDate": 1490087455000,
+               "sortNum": 0,
+               "topicReplyNum": 15500,
+               "topicViewNum": 1826650,
+            },
+           platform:'unknown',
+           skinType:0
+        },
+        methods:{
+
+            getImageurl:function() {
+                var oimgurl = this.hotitem.imgurl;
+                oimgurl = oimgurl.replace('../','./').replace('./','/');
+                return oimgurl;
+            },
+
+            changeSkin: function(skinTypes) {
+                 var cskinType = this.$getConfig().skinType;
+                 if(cskinType==undefined){
+                     cskinType= taoguba.getUrlParam('skinType');
+                 }
+                 if(cskinType==undefined){
+                   cskinType = 0;
+                 }
+                 this.skinType = cskinType;
+
+            },
+
+            formatNum :function(num){//格式化数字格式
+                    var strNum;
+                    if (typeof window === 'object') {
+                            strNum =num;
+                    }else{
+                            if(this.platform == 'iOS'){
+
+                                                          strNum =num;
+                          var event_ios = require('@weex-module/event')// web 没有WXEventModule
+
+                                  strNum = event_ios.shipanNumberWithNumber(num,0);
+                            }else{
+                                    strNum =weexEventModule.NumFormate(num,"0", "#,###");
+                            }
+                    }
+                    return strNum;
+            },
+            
+            openzhuanti:function(e) {
+                     var focusSeq = e.target.attr.ref;
+                     var name = 'zhuanti';
+                     var url = taoguba.getDefaultUrl(name)+'?focusSeq='+focusSeq+'&skinType='+this.skinType;
+                     var params = {
+                               'url': url,
+                               'animated': 'true',
+                               'options':{'focusSeq':focusSeq}
+                     };
+
+                     if (typeof window === 'object') {
+                     //http://192.168.1.15:8080/index.html?page=./dist/zhuanti.js?focusSeq=47
+                         navigator.push(params,event => {
+                                     //sunccess
+                               } );
+                     }else{
+                            weexNavigator.push(params,event => {
+                                     //sunccess
+                               } );
+                       }
+                     }
+
+            },
+            ready(){
+                this.changeSkin(this.skinType);
+//         接收广播
+//            this.$on('changeSkin', function(e) {
+//                          weexEventModule.ShowLogI('shuoshuo_item.we','5615--->'+e.toString());
+//                         // self.title = e.title;
+//                          weexEventModule.ShowLogI('shuoshuo_item.we','1263155--->'+e.skintype);
+//             })
+            }
+
+    }
+</script>
+
+<style>
+.content{
+      flex-direction:row;
+      margin-top: 10px;
+      margin-left: 20px;
+      margin-right: 20px;
+}
+.itemClass-0:active {
+    background-color: #dddddd
+}
+.itemClass-1:active {
+    background-color: #132237
+}
+.left{
+      margin-top:5px;
+      margin-bottom:5px;
+      flex-direction:column;
+      margin-left:5px;
+      margin-right:5px;
+      flex:1;
+}
+
+.img-left{
+      width:195px;
+      height:165px;
+}
+
+.right{
+      margin-top:5px;
+      margin-bottom:5px;
+      flex-direction:column;
+      margin-left:5px;
+      margin-right:5px;
+      flex:2;
+}
+.up{
+       margin-top:5px;
+       flex-direction:row;
+       margin-left:5px;
+       margin-right:5px;
+       height:135px;
+}
+.down{
+       margin-top:10px;
+       flex-direction:row;
+       margin-left:5px;
+       margin-right:5px;
+       justify-content:flex-end;
+}
+.lineClass-0{
+       background-color: #eeeeee;
+       height: 2px;
+       margin-top: 10px;
+ }
+.lineClass-1{
+       background-color: #0e1929;
+       height: 2px;
+       margin-top: 10px;
+ }
+.textClass-0{
+      flex:1;
+      color:#333333;
+      font-size:17wx;
+ }
+.textClass-1{
+      flex:1;
+     color:#999999;
+     font-size:12wx;
+}
+.numclass-0{
+     color:#BBBBBB;
+     font-size:12wx;
+}
+.numclass-1{
+     color:#666666;
+     font-size:12wx;
+}
+</style>

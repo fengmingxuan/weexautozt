@@ -1,0 +1,381 @@
+<template>
+    <div class="wrapper content_class-{{skinType}}">
+         <navbar if="{{navBar_display}}" class="navbar" id="tb" title="{{title}}" ref="{{focusSeq}}" shown="{{shown}}" type="{{skinType}}"></navbar>
+        <we-dropdown  id="we-dropdown-id"   class="dropdown content_class-{{skinType}}" type="{{skinType}}" status-id="{{status}}">
+            <div class="content_class-{{skinType}}">
+                <list class="content_class-{{skinType}}" style="height: {{screenHeight}}"  >
+                    <refresh class="refresh-view refresh-view-{{skinType}}" display="{{refresh_display}}" onrefresh="onrefresh">
+                         <loading-indicator class="indicator" ></loading-indicator>
+                             <text class="refresh-arrow  refresh-arrow-{{skinType}}" >
+                                 下拉刷新
+                             </text>
+                    </refresh>
+                    <cell repeat="{{zhuantiitem in zhuantiArray}}"  >
+                            <zhuanti_item id="sub" zhuantiitem="{{zhuantiitem}}"  skinType="{{skinType}}"></zhuanti_item>
+                    </cell>
+                    <loading  class="loading-view loading-view-{{skinType}}" display="{{showLoading}}"  onloading="onloading">
+                             <text  class="refresh-arrow refresh-arrow-{{skinType}}" >
+                                 加载更多
+                            </text>
+                            <loading-indicator class="indicator" ></loading-indicator>
+                     </loading>
+                </list>
+            </div>
+        </we-dropdown>
+    </div>
+</template>
+
+<script>
+require('./template/we-dropdown.we');
+    require('weex-components');
+    require('./template/navbar.we')
+    require('./zhuanti_item.we')
+    var stream = require('@weex-module/stream');
+    var modal = require('@weex-module/modal');
+    var weexEventModule =  require('@weex-module/weexEventModule');
+    var weexModalUIModule =  require('@weex-module/weexModalUIModule');
+    var taoguba = require('./taoguba');
+    var globalEventModule = require('@weex-module/globalEvent');
+
+    module.exports = {
+
+     data:{
+            refresh_display:'hide',
+            zhuantiArray:[],
+            test:'s-test',
+            textClass:'dayclass',
+            TAG:'shuoshuo.we',
+            title:'',
+            skinType:0,
+            status: '1',
+            screenHeight: 0,
+            focusSeq:0,
+            sortType:0,
+            pageNo:1,
+            showLoading: 'hide',
+            navBar_display:true,
+            shown:true,
+            platform:'unknown',
+            whichpage:'zhuantti.we'
+         },
+
+        methods:{
+            onrefresh:function(e){
+//                console.log('onrefresh');
+                var self = this;
+                self.pageNo=1;
+                self.refresh_display = 'show';
+//                this.$call('timer','setTimeout',function(){
+//                   self.refresh_display = 'hide';
+//                },1000);
+                 self.refresh();
+            },
+
+            onloading:function(e){
+//                console.log('onloading');
+                var self = this;
+                self.showLoading = 'show';
+                self.pageNo=self.pageNo+1;
+                this.$call('timer','setTimeout',function(){
+                      self.showLoading = 'hide';
+                },1000);
+                self.refresh();
+            },
+
+
+
+            refresh:function(){
+                    var self = this;
+                    var url = taoguba.getFocusTopic();
+                     var apiurl = taoguba.getOriginApi();
+                    stream.fetch({
+                           method:'GET',
+                           url:url+'?focusSeq='+self.focusSeq+'&sortType='+self.sortType+'&pageNo='+self.pageNo,
+                           body:{
+                                "url":url,
+                                "focusSeq":self.focusSeq,
+                                "sortType":self.sortType,
+                                "pageNo":self.pageNo
+                          },
+                           headers:{
+//                               'Access-Control-Allow-Origin':'*',
+                                'Content-Type':'application/x-www-form-urlencoded',
+//                               'Access-Control-Allow-Methods':'GET,PUT,OPTIONS',
+//                               'Access-Control-Allow-Headers':'Content-type'
+                           }
+                    },function(ret){
+                            self.showLoading = 'hide';
+                            self.refresh_display = 'hide';
+                             var result = JSON.stringify(ret);
+                            //modal.toast({ 'message': 'ret' + result, 'duration': 2 });
+//                             console.log('result=='+result);
+                            if(!ret.ok){
+//                                modal.toast({'message':'你的手机网络出问题啦!','duration':2});
+                            }else{
+                                if(self.pageNo == 1){
+                                     self.zhuantiArray.splice(0,self.zhuantiArray.length);
+                                }
+                                var json = ret.data;
+                                //如果是对象，就不解析了
+                                if (json && typeof(json) != 'object') {
+                                  try {
+                                    json = eval('('+ret.data+')');
+                                  } catch (e) {}
+                                }
+
+                                var resultStatus;
+                                if (typeof window === 'object' ||self.platform == 'iOS') {
+                                    if(json && json.status==true){
+                                       resultStatus = '1';
+                                    }else{
+                                       resultStatus = '0';
+                                    }
+                                }else{
+                                     resultStatus= weexEventModule.isStatus(json.errorCode,json.status);
+                                }
+                                if(resultStatus=='1'){
+                                    if(json.dto){
+                                        self.title=json.dto.name;
+                                        self.setNavbarTitle(self.title)
+                                        if(json.dto.list && json.dto.list.length > 0 ){
+                                               for(var i = 0;i<json.dto.list.length;i++){
+                                                     var zhuantiitem = json.dto.list[i];
+                                                     var showthumbnail = false;
+
+                                                      if(zhuantiitem.thumbnail.length>0){
+                                                         showthumbnail = true;
+                                                      }else{
+                                                         showthumbnail = false;
+                                                      }
+                                                      zhuantiitem.showthumbnail = showthumbnail;
+                                                      self.zhuantiArray.push(zhuantiitem);
+                                               }
+                                        }
+                                    }
+                                }else{
+                                  if (self.platform == 'iOS') {
+
+                                  }
+                                  else {
+                                    weexModalUIModule.toast(json.errorMessage);
+                                  }
+                                }
+                            }
+                    });
+               },
+               changeSkin :function(cskinType) {
+                   if(cskinType==undefined){
+                       cskinType= taoguba.getUrlParam('skinType');
+                   }
+                   if(cskinType==undefined){
+                       cskinType= 0;
+                   }
+                   this.skinType = cskinType;
+
+                  var res = "./images/leftw_"+this.skinType+".png";
+                  this.$vm('tb').setLeftImage(taoguba.getImageUrl(res));
+                  var resright = "./images/quanq_"+this.skinType+".png";
+                  this.$vm('tb').setRightImage(taoguba.getImageUrl(resright));
+               },
+
+               ondropmenu:function() {
+//                 console.log('zhuanti == ondropmenu');
+                        if (this.platform == 'android') {
+                            var json = [
+                                {
+                                    "DropDownItemId":"0",
+                                    "DropDownItemName":"按回帖时间"
+                                },{
+                                    "DropDownItemId":"1",
+                                    "DropDownItemName":"按发帖时间"
+                                }
+                            ]
+                            var self  = this;
+                            weexModalUIModule.show("1","3","70",self.whichpage,"120","14",json,function(position) {
+                                    self.onDropDownItem(position);
+                            });
+                        }
+                        else if (this.platform == 'iOS') {
+                        }
+                        else{
+                             this.$vm('we-dropdown-id').switchView();
+                        }
+
+               },
+               
+               onDropDownItem: function(position) {
+//                    console.log('zhuanti  onDropDownItem position=='+position);
+                    if(position==0){
+                        this.sortType=1; // 按回帖
+                        this.pageNo=1;
+                        this.refresh();
+                    }else if(position==1){
+                        this.sortType=0; //按发帖
+                        this.pageNo=1;
+                        this.refresh();
+                    }
+               },
+               setNavbarTitle:function(title){
+                var self = this;
+                if (self.platform == 'iOS') {
+                  var event_ios = require('@weex-module/event');
+                  event_ios.setNavbarTitle(title);
+                }
+               },
+               getCurrentSortType:function(){
+                    return this.sortType;
+               }
+
+          },
+         created: function(){
+                    var self = this;
+                    var position = 0;
+                    this.platform = this.$getConfig().env.platform;
+                    if (this.platform != 'android') {
+                        this.screenHeight = this.$getConfig().env.deviceHeight  ;
+                       if (this.platform == 'iOS') {
+                        this.shown = false;
+                        this.navBar_display = false;
+                         this.screenHeight =this.screenHeight +  this.$getConfig().env.scale*20;//状态栏
+                         var event_ios = require('@weex-module/event');
+                          position = event_ios.getZhuantiKeyString(self.whichpage);//
+
+                          var dic = {'more':'more','whichpage':self.whichpage};
+                          event_ios.setRightBarButtonItemWithType(dic,function (ret) {
+                            position = ret.result.toString();
+                            self.onDropDownItem(ret.result);
+                          });
+                        }
+                    }else{
+                        position = weexEventModule.getString(self.whichpage);
+                    }
+                    var cskinType = this.$getConfig().skinType;
+                    if(cskinType==undefined){
+                        cskinType = taoguba.getUrlParam('skinType');
+                    }
+                    if(cskinType==undefined){
+                       cskinType = 0;
+                    }
+                    this.skinType = cskinType;
+                    var cfocusSeq = this.$getConfig().focusSeq;
+                    if(cfocusSeq==undefined){
+                       cfocusSeq = taoguba.getUrlParam('focusSeq');
+                    }
+                    this.focusSeq = cfocusSeq;
+//                    console.log('position        7777777' + position);
+                    self.onDropDownItem(position);
+         },
+
+          ready(){
+
+          this.changeSkin(this.skinType);
+                    var self = this;
+//                     this.$vm('sub').changeSkin('11');//调用子控件方法
+//                    globalEventModule.addEventListener("mainlist_text_day_night",function(options){
+//                            weexEventModule.ShowLogI(self.TAG,options.toString());
+//
+//                          self.$broadcast('changeSkin', {
+//                                                        "skintype": "11"
+//                                              })
+//                   });
+                },
+    }
+</script>
+
+<style>
+.navbar{
+     justify-content: center;
+     align-content: stretch;
+     position: relative;
+     z-index: 91;
+}
+.dropdown{
+       display: flex;
+        justify-content: center;
+        align-content: stretch;
+        position: relative;
+        z-index: 90;
+
+}
+
+.wrapper{
+        justify-content:flex-start;
+        flex-direction: column;
+        position: relative;
+        width: 750;
+    }
+.refresh-view{
+   display: -ms-flex;
+   display: -webkit-flex;
+   display: flex;
+   -ms-flex-align: center;
+   -webkit-align-items: center;
+   -webkit-box-align: center;
+   align-items: center;
+}
+.refresh-view-0{
+    background-color: #f5f5f5;
+}
+
+.refresh-view-1{
+    background-color: #15253d;
+}
+.indicator{
+    width: 60;
+    height: 60;
+    color:#889967;
+}
+.content_class-0 {
+    background-color: #f5f5f5;
+    width: 750;
+}
+.content_class-1 {
+    background-color: #15253d;
+    width: 750;
+}
+.loading-view {
+    width: 750;
+    height: 100;
+    display: -ms-flex;
+    display: -webkit-flex;
+    display: flex;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    -webkit-box-align: center;
+    align-items: center;
+}
+
+.loading-view-0 {
+   background-color:#f5f5f5;
+}
+
+.loading-view-1 {
+   background-color: #15253d;
+}
+.refresh-arrow{
+   height:40;
+   width: 90;
+   font-size:22px;
+
+    margin-top: 10;
+     height:40;
+     width:750;
+     font-size:22px;
+     text-align: center;
+     align-items: center;
+}
+
+.refresh-arrow-0{
+    margin-top: 10;
+
+    color: #bbbbbb;
+}
+
+.refresh-arrow-1{
+    color: #666666;
+}
+.status {   }
+
+ .status-1 { color: #090; }
+ .status-2 { color: #f00; }
+</style>

@@ -1,0 +1,237 @@
+<template>
+    <div onclick="openshuoshuo" ref="{{zhuantiitem.topicID}}" title="{{zhuantiitem.subject}}" class="itemClass-{{skinType}}">
+        <div class="item_content">
+            <div class="content_up">
+                   <image if="{{zhuantiitem.showthumbnail}}" class="icon" src="https://image.taoguba.com.cn{{zhuantiitem.thumbnail}}"></image>
+                   <text class="subjectClass subjectClass_{{platform}} subjectClass-{{skinType}}">{{zhuantiitem.subject}} </text>
+             </div>
+            <div class="content_down" >
+                <div class="content_down_left">
+                     <text class="textClass textClass-{{skinType}}">{{formatTime()}}   {{zhuantiitem.userName}}</text>
+                </div>
+                <div class="content_down_right" obj="{{zhuantiitem.topicID}}">
+                        <image class="img" src="{{home_dian_zan}}"></image>
+                        <text class="numclass textClass textClass-{{skinType}}">{{zhuantiitem.usefulNum}}</text>
+                        <image class="img" src="{{home_ping_lun}}"></image>
+                        <text class="numclass textClass textClass-{{skinType}}">{{zhuantiitem.totalReplyNum}}</text>
+                </div>
+            </div>
+        </div>
+        <div class="lineClass lineClass-{{skinType}}"></div>
+    </div>
+</template>
+
+<script>
+    require('weex-components');
+    var modal = require('@weex-module/modal');
+    var stream = require('@weex-module/stream');
+    var storage = require('@weex-module/storage');
+    var weexEventModule =  require('@weex-module/weexEventModule');
+    var weexNavigator = require('@weex-module/weexNavigatorModule')
+    var taoguba = require('./taoguba');
+    var navigator = require('@weex-module/navigator')
+    var date = require('./common/date');
+    module.exports = {
+        created:function(){
+            this.platform = this.$getConfig().env.platform;
+            var cskinType = this.$getConfig().skinType;
+            if(cskinType==undefined){
+                cskinType=taoguba.getUrlParam('skinType');
+            }
+            if(cskinType==undefined){
+             cskinType = 0;
+            }
+            this.skinType = cskinType;
+            this.home_dian_zan = taoguba.getImageUrl(this.home_dian_zan);
+            this.home_ping_lun = taoguba.getImageUrl(this.home_ping_lun);
+
+
+        },
+
+        ready:function(){
+
+         } ,
+        data:{
+           zhuantiitem:{
+              userID:'2',
+              userName:'股天乐',
+              topicID:'1647303',
+              totalReplyNum:'139',
+              subject:'淘县首届实战高峰论坛，专属投资者的大盛会专属投资者的大盛会',
+              postDate:'16-03-17',
+              lastReplyDate:'1490284800000',
+              thumbnail:'',
+              usefulNum:'36',
+              showthumbnail:false
+           },
+          platform:'unknown',
+          skinType:0,
+          textClass:'dayclass',
+          home_dian_zan:'./images/home_dian_zan.png',
+          home_ping_lun:'./images/home_ping_lun.png',
+
+        },
+        methods:{
+            changeSkin: function(cskinType) {
+
+              if(cskinType==undefined){
+                   cskinType= taoguba.getUrlParam('skinType');
+               }
+               if(cskinType==undefined){
+                   cskinType= 0;
+               }
+               this.skinType = cskinType;
+
+            },
+             openshuoshuo:function(e) {
+                 var topicID = e.target.attr.ref;
+                  var url = taoguba.getMTaoguba('topicID='+topicID+'&replyID=0&pageNo=1');
+                 var optionJson = {
+                   'TOPIC_ID_KEY': topicID,
+                   'TOPIC_REPLY_ID_KEY': 0,
+
+                     };
+                 var params = {
+                             'url': url,
+                             'animated': 'true',
+                             'options':{'skinType':'0'}
+                       };
+                     if (typeof window === 'object') {
+                     //http://m.taoguba.com.cn/mViewTopic?topicID=1293091&replyID=890&pageNo=1
+                     //https://m.taoguba.com.cn/Article/1657029/1
+
+                       navigator.push(params,event => {
+                                  //sunccess
+                            } );
+                     }else{
+//                     weexNavigator.push(params,event => {
+//                                                       //sunccess
+//                                                 } );
+                        var platform = this.$getConfig().env.platform;
+                        if (platform == 'iOS') {
+                          var event_ios = require('@weex-module/event')
+                          event_ios.pushViewController('TopicViewController',{'topicID':topicID,'replyID':0});
+                        }
+                        else {
+                       weexEventModule.startOtherNativeActivity('com.taoguba.app.activity.TaogubaTopicActivity',optionJson);
+                        }
+                    }
+                },
+             formatTime :function(){
+                var time ;
+                var sortType = this._parent.getCurrentSortType();
+                if(sortType == 1){
+                    time = this.zhuantiitem.lastReplyDate;
+                }else{
+                    time = this.zhuantiitem.postDate;
+                }
+                var strTime;
+                if (this.platform == 'iOS') {
+                  var event_ios = require('@weex-module/event');
+                  strTime =  event_ios.dateStringFromNumber(time.toString());
+                 }
+                 else if (typeof window === 'object') {
+                    strTime =  date.formatDate(new Date(time),"yy-MM-dd");
+                 }else{
+                    strTime = weexEventModule.TimeFormate("3", time,"");
+//                    strTime =  date.formatDate(new Date(time),"yy-MM-dd");
+                 }
+
+//                weexEventModule.ShowLogI("","strTime-->:"+strTime);
+                return strTime;
+             }
+        }
+
+
+    }
+</script>
+
+<style>
+/*div{font-family: Helvetica;}*/
+.item_content{
+      margin: 20px;
+      flex:1;
+}
+.itemClass-0:active {
+    background-color: #dddddd
+}
+.itemClass-1:active {
+    background-color: #132237
+}
+
+.subjectClass_android{
+      font-size:16wx;
+      flex:1;
+}
+.subjectClass_iOS{
+      font-size:17wx;
+      flex:1;
+      font-weight:bold;
+}
+.subjectClass_undefined{
+      font-size:17wx;
+      flex:1;
+      font-weight:bold;
+}
+
+.subjectClass-0{
+      color:#222222;
+}
+.subjectClass-1{
+      color:#999999;
+}
+.textClass{
+    font-size:12wx;
+}
+.textClass-0{
+     color:#BBBBBB;
+}
+.textClass-1{
+     color:#666666;
+}
+.lineClass{
+    height: 2px;
+}
+.lineClass-0{
+       background-color: #eeeeee;
+}
+.lineClass-1{
+       background-color: #0e1929;
+}
+.content_up{
+
+    flex-direction: row;
+    justify-content:flex-start;
+    flex:1;
+}
+.content_down{
+    margin-top:30px;
+    flex-direction:row;
+}
+.content_down_left{
+
+}
+.content_down_right{
+    flex:1;
+    flex-direction:row;
+    justify-content:flex-end;
+}
+.img{
+    width:40px;
+    height:40px;
+    margin-left: 30px;
+
+
+}
+
+.icon{
+    width:40px;
+    height:40px;
+    margin-left: 0px;
+    margin-right: 10px;
+}
+.numclass{
+    margin-left: 10px;
+    margin-top: 7px;
+}
+</style>
